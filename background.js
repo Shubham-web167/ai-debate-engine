@@ -600,17 +600,30 @@ async function runDebateStateLoop() {
       currentState = self.StateMachine.transition(currentState, 'DONE');
       await saveState();
       await self.DebateLogger.info('orchestrator', 'Debate successfully completed!');
+      showCompletionNotification('COMPLETED', 'The AI debate has concluded! Click to view the final synthesized answer.');
     }
   } catch (err) {
     if (currentState && currentState.status !== 'CANCELLED') {
       currentState = self.StateMachine.transition(currentState, 'FAILED', { error: err.message });
       await saveState();
       await self.DebateLogger.error('orchestrator', 'Debate failed', err.message);
+      showCompletionNotification('FAILED', 'The debate encountered an error: ' + err.message);
     }
   } finally {
     isOrchestratorRunning = false;
     stopKeepAliveAlarm();
   }
+}
+
+// Show desktop notification when debate ends
+function showCompletionNotification(status, message) {
+  chrome.notifications.create('debate_finished', {
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: status === 'COMPLETED' ? '⚖️ Debate Finished!' : '❌ Debate Failed',
+    message: message,
+    priority: 2
+  });
 }
 
 // Explicit cancellation cleanup
@@ -736,4 +749,20 @@ if (self.alarmListenerRegistered) {
     }
   });
   self.alarmListenerRegistered = true;
+}
+
+// Handle notification clicks to show the debate UI
+if (!self.notificationListenerRegistered) {
+  chrome.notifications.onClicked.addListener((notificationId) => {
+    if (notificationId === 'debate_finished') {
+      chrome.windows.create({
+        url: 'popup/popup.html',
+        type: 'popup',
+        width: 450,
+        height: 700
+      });
+      chrome.notifications.clear('debate_finished');
+    }
+  });
+  self.notificationListenerRegistered = true;
 }
