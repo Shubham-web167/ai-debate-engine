@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Debate Synthesizer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">⚖️</div>
+        <h1>AI Debate Synthesizer</h1>
+      </div>
+      <div class="status-badge" id="global-status">IDLE</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      
+      <!-- Configuration Panel -->
+      <section class="panel config-panel" id="setup-view">
+        <h2>Debate Configuration</h2>
+        
+        <div class="form-group">
+          <label for="question-input">Enter Debate Question:</label>
+          <textarea id="question-input" placeholder="Type a complex prompt, question, or logical puzzle..." rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Target Platforms:</label>
+          <div class="checkbox-group">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="platform-chatgpt" checked>
+              <span class="checkmark"></span>
+              ChatGPT
+            </label>
+            <label class="custom-checkbox">
+              <input type="checkbox" id="platform-claude" checked>
+              <span class="checkmark"></span>
+              Claude
+            </label>
+            <label class="custom-checkbox">
+              <input type="checkbox" id="platform-gemini" checked>
+              <span class="checkmark"></span>
+              Gemini
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="similarity-threshold">Round 2 Threshold:</label>
+            <input type="number" id="similarity-threshold" min="0" max="1" step="0.05" value="0.4">
+            <small class="help-text">Trigger Round 2 if Jaccard similarity is below this.</small>
+          </div>
+          
+          <div class="form-group half">
+            <label for="judge-select">Debate Judge:</label>
+            <select id="judge-select">
+              <option value="longest">Longest Answer (Auto)</option>
+              <option value="chatgpt">ChatGPT</option>
+              <option value="claude">Claude</option>
+              <option value="gemini">Gemini</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="start-btn" class="btn primary-btn">Launch Debate</button>
+      </section>
+
+      <!-- Active Progress View -->
+      <section class="panel progress-panel hidden" id="running-view">
+        <div class="progress-header">
+          <h2>Debate Progress</h2>
+          <button id="stop-btn" class="btn danger-btn">Stop</button>
+        </div>
+
+        <!-- Timeline Steps -->
+        <div class="timeline">
+          <div class="step" id="step-broadcast">
+            <div class="step-num">1</div>
+            <div class="step-label">Initial Broadcast</div>
+          </div>
+          <div class="step" id="step-critique">
+            <div class="step-num">2</div>
+            <div class="step-label">Cross Critique</div>
+          </div>
+          <div class="step" id="step-round2">
+            <div class="step-num">3</div>
+            <div class="step-label">Critique 2 (Opt)</div>
+          </div>
+          <div class="step" id="step-judge">
+            <div class="step-num">4</div>
+            <div class="step-label">Synthesis & Judge</div>
+          </div>
+        </div>
+
+        <!-- Platform Status Badges -->
+        <div class="platform-statuses">
+          <div class="platform-badge" id="badge-chatgpt">
+            <span class="p-dot"></span>
+            ChatGPT: <span class="p-status">PENDING</span>
+          </div>
+          <div class="platform-badge" id="badge-claude">
+            <span class="p-dot"></span>
+            Claude: <span class="p-status">PENDING</span>
+          </div>
+          <div class="platform-badge" id="badge-gemini">
+            <span class="p-dot"></span>
+            Gemini: <span class="p-status">PENDING</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results View -->
+      <section class="panel results-panel hidden" id="results-view">
+        <div class="results-header">
+          <h2>Synthesized Consensus</h2>
+          <button id="reset-btn" class="btn secondary-btn">New Debate</button>
+        </div>
+        
+        <div class="synthesized-box">
+          <div id="synthesized-content" class="markdown-body"></div>
+          <div class="synthesis-meta">
+            Synthesized by: <span id="synthesis-judge-name">N/A</span> | 
+            Round 1 Similarity: <span id="synthesis-similarity">N/A</span>
+          </div>
+        </div>
+
+        <!-- Details Accordion / Tabs -->
+        <div class="accordion-section">
+          <h3>Intermediate Responses</h3>
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="tab-initial">Initial Answers</button>
+            <button class="tab-btn" data-tab="tab-critique1">Critique 1 Answers</button>
+            <button class="tab-btn" data-tab="tab-critique2">Critique 2 Answers</button>
+          </div>
+          
+          <div class="tabs-content">
+            <div class="tab-pane active" id="tab-initial">
+              <div class="platform-response">
+                <h4>ChatGPT</h4>
+                <div id="res-initial-chatgpt" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Claude</h4>
+                <div id="res-initial-claude" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Gemini</h4>
+                <div id="res-initial-gemini" class="response-text">No response</div>
+              </div>
+            </div>
+            
+            <div class="tab-pane" id="tab-critique1">
+              <div class="platform-response">
+                <h4>ChatGPT</h4>
+                <div id="res-critique1-chatgpt" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Claude</h4>
+                <div id="res-critique1-claude" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Gemini</h4>
+                <div id="res-critique1-gemini" class="response-text">No response</div>
+              </div>
+            </div>
+            
+            <div class="tab-pane" id="tab-critique2">
+              <div class="platform-response">
+                <h4>ChatGPT</h4>
+                <div id="res-critique2-chatgpt" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Claude</h4>
+                <div id="res-critique2-claude" class="response-text">No response</div>
+              </div>
+              <div class="platform-response">
+                <h4>Gemini</h4>
+                <div id="res-critique2-gemini" class="response-text">No response</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logs Section (Always visible at the bottom) -->
+      <section class="panel logs-panel">
+        <div class="logs-header">
+          <h3>Real-time Logs</h3>
+          <button id="clear-logs-btn" class="text-btn">Clear</button>
+        </div>
+        <div id="logs-list" class="logs-list"></div>
+      </section>
+
+      <!-- System Crash Logs Panel (Observable Debugging) -->
+      <section class="panel debug-panel" style="margin-top: 8px; border-color: rgba(248, 113, 113, 0.2);">
+        <div class="debug-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 10px; font-weight: 700; color: #f87171; text-transform: uppercase; letter-spacing: 0.05em;">System Crash Logs</h3>
+          <button id="clear-crash-btn" class="text-btn" style="color: #f87171;">Clear Logs</button>
+        </div>
+        <div id="crash-log-content" class="crash-log-content" style="background-color: #020617; border: 1px solid #334155; border-radius: 6px; max-height: 90px; overflow-y: auto; font-family: monospace; font-size: 9px; padding: 6px; color: #cbd5e1; line-height: 1.4; word-break: break-all;">No recent crashes.</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

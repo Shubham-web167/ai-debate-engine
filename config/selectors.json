@@ -1,0 +1,75 @@
+{
+  "chatgpt": {
+    "input": [
+      "#prompt-textarea",
+      "textarea[data-id]",
+      "div[contenteditable='true']",
+      "textarea"
+    ],
+    "sendButton": [
+      "button[data-testid='send-button']",
+      "button[aria-label*='send' i]",
+      "button[aria-label='Send message']",
+      "form button:last-of-type"
+    ],
+    "responseContainer": [
+      "[data-message-author-role='assistant']",
+      "div.agent-turn",
+      ".markdown"
+    ],
+    "stopButton": [
+      "button[aria-label='Stop generating']",
+      "button[data-testid='stop-button']",
+      "button[aria-label='Stop']"
+    ]
+  },
+  "claude": {
+    "input": [
+      "div[contenteditable='true']",
+      "div.ProseMirror",
+      "textarea"
+    ],
+    "sendButton": [
+      "button[aria-label*='send' i]",
+      "button[aria-label*='prompt' i]",
+      "button[aria-label='Send Message']",
+      "button[aria-label='Send message']"
+    ],
+    "responseContainer": [
+      "div.font-claude-message",
+      "div[data-is-streaming]",
+      "[data-message-author-role='assistant']",
+      "div[class*='claude-message']",
+      "div[class*='response']",
+      "div.prose",
+      "div[class*='message-content']",
+      "div[class*='chat-message']:not([class*='user'])"
+    ],
+    "stopButton": [
+      "button[aria-label='Stop generating']",
+      "button[aria-label='Stop']"
+    ]
+  },
+  "gemini": {
+    "input": [
+      "div[contenteditable='true']",
+      "div.rich-textarea",
+      "textarea"
+    ],
+    "sendButton": [
+      "button[aria-label*='send' i]",
+      "button[aria-label='Send message']",
+      "button.send-button",
+      "button:has(mat-icon)"
+    ],
+    "responseContainer": [
+      "message-content",
+      ".message-content-wrapper",
+      "div.message-content"
+    ],
+    "stopButton": [
+      "button[aria-label='Stop generating']",
+      "button[aria-label='Stop']"
+    ]
+  }
+}

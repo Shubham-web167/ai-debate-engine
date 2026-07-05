@@ -1,0 +1,80 @@
+{
+  "manifest_version": 3,
+  "name": "AI Debate Synthesizer",
+  "version": "1.0",
+  "description": "Simultaneously broadcast a question to ChatGPT, Claude, and Gemini, run cross-critique rounds, and synthesize a final answer.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://chatgpt.com/*",
+    "*://*.chatgpt.com/*",
+    "*://claude.ai/*",
+    "*://*.claude.ai/*",
+    "*://gemini.google.com/*",
+    "*://*.gemini.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://*.chatgpt.com/*"
+      ],
+      "js": [
+        "utils/logger.js",
+        "utils/selectorResolver.js",
+        "adapters/baseAdapter.js",
+        "adapters/chatgptAdapter.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://claude.ai/*",
+        "*://*.claude.ai/*"
+      ],
+      "js": [
+        "utils/logger.js",
+        "utils/selectorResolver.js",
+        "adapters/baseAdapter.js",
+        "adapters/claudeAdapter.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://gemini.google.com/*",
+        "*://*.gemini.google.com/*"
+      ],
+      "js": [
+        "utils/logger.js",
+        "utils/selectorResolver.js",
+        "adapters/baseAdapter.js",
+        "adapters/geminiAdapter.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["config/selectors.json"],
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://*.chatgpt.com/*",
+        "*://claude.ai/*",
+        "*://*.claude.ai/*",
+        "*://gemini.google.com/*",
+        "*://*.gemini.google.com/*"
+      ]
+    }
+  ]
+}
