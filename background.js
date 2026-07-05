@@ -615,14 +615,24 @@ async function runDebateStateLoop() {
   }
 }
 
-// Show desktop notification when debate ends
+// Show desktop notification and automatically pop open the UI when debate ends
 function showCompletionNotification(status, message) {
+  // 1. Show notification as a backup
   chrome.notifications.create('debate_finished', {
     type: 'basic',
     iconUrl: 'icons/icon128.png',
     title: status === 'COMPLETED' ? '⚖️ Debate Finished!' : '❌ Debate Failed',
     message: message,
     priority: 2
+  });
+
+  // 2. Automatically pop up the UI window so the user sees it immediately
+  chrome.windows.create({
+    url: 'popup/popup.html',
+    type: 'popup',
+    width: 450,
+    height: 700,
+    focused: true
   });
 }
 
