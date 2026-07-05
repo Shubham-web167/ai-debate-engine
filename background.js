@@ -628,11 +628,17 @@ function showCompletionNotification(status, message) {
 
   // 2. Automatically pop up the UI window so the user sees it immediately
   chrome.windows.create({
-    url: 'popup/popup.html',
+    url: chrome.runtime.getURL('popup/popup.html'),
     type: 'popup',
     width: 450,
     height: 700,
     focused: true
+  }, (window) => {
+    if (chrome.runtime.lastError) {
+      console.error('[Debate] Failed to auto-open popup window:', chrome.runtime.lastError.message);
+    } else {
+      console.log('[Debate] Auto-opened popup window:', window.id);
+    }
   });
 }
 
