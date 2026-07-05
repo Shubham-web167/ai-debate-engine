@@ -1,4 +1,4 @@
-# AI Debate Synthesizer Extension ⚖️🤖
+# SYNTRIX Extension ⚖️🤖
 
 A powerful Chrome extension that orchestrates autonomous debates between leading AI models (ChatGPT, Claude, and Gemini). Enter a single prompt, and watch as the AIs collaborate, critique each other's answers, and synthesize a final, highly accurate master response.
 
