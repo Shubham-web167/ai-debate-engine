@@ -481,7 +481,7 @@ async function runCritiqueRound1() {
       'orchestrator', 
       `Critique 1 similarity (${avgSimilarity.toFixed(3)}) meets threshold (${currentState.config.round2SimilarityThreshold}). Skipping Critique Round 2.`
     );
-    currentState = self.StateMachine.transition(currentState, 'JUDGE');
+    currentState = self.StateMachine.transition(currentState, 'JUDGE_ANALYSIS');
     await saveState();
   } else {
     await self.DebateLogger.info(
@@ -495,9 +495,9 @@ async function runCritiqueRound2() {
   await runRoundGeneric('critique2', 'critique2', 120000);
 }
 
-async function runJudgeRound() {
-  if (currentState.status !== 'WAITING_JUDGE' && currentState.status !== 'COLLECTING_JUDGE') {
-    currentState = self.StateMachine.transition(currentState, 'WAITING_JUDGE');
+async function runJudgeAnalysisRound() {
+  if (currentState.status !== 'WAITING_JUDGE_ANALYSIS' && currentState.status !== 'COLLECTING_JUDGE_ANALYSIS') {
+    currentState = self.StateMachine.transition(currentState, 'WAITING_JUDGE_ANALYSIS');
     await saveState();
   }
 
@@ -540,31 +540,70 @@ async function runJudgeRound() {
     throw new Error(`No tab connection for judge platform: ${judge}`);
   }
 
-  // Focus the judge tab
   activateTab(judge);
 
-  if (currentState.synthesis) {
-    await self.DebateLogger.info('orchestrator', 'Synthesis already completed.');
+  if (currentState.analysis) {
+    await self.DebateLogger.info('orchestrator', 'Analysis pass already completed.');
     return;
   }
 
-  const judgePrompt = self.DebateTemplates.getJudgePrompt(currentState.question, finalAnswersMap);
+  const analysisPrompt = self.DebateTemplates.getJudgeAnalysisPrompt(currentState.question, finalAnswersMap);
   
   currentState.platformStatus[judge] = 'RUNNING';
   await saveState();
 
-  await self.DebateLogger.info(judge, 'Sending synthesis prompt to Judge');
-  await sendTabMessageWithRetry(tabId, { action: 'injectAndSend', text: judgePrompt });
+  await self.DebateLogger.info(judge, 'Sending Analysis Pass prompt to Judge');
+  await sendTabMessageWithRetry(tabId, { action: 'injectAndSend', text: analysisPrompt });
 
   currentState.platformStatus[judge] = 'WAITING';
   await saveState();
 
-  await self.DebateLogger.info(judge, 'Waiting for judge synthesis (180s timeout)');
+  await self.DebateLogger.info(judge, 'Waiting for analysis completion (180s timeout)');
+  const analysisText = await sendTabMessageWithRetry(tabId, { action: 'waitForCompletion', timeoutMs: 180000 }, [0, 2000, 5000]);
+
+  currentState.analysis = analysisText;
+  currentState.platformStatus[judge] = 'SUCCESS';
+  await self.DebateLogger.info(judge, 'Analysis Pass completed successfully!');
+  currentState = self.StateMachine.transition(currentState, 'JUDGE_SYNTHESIS');
+  await saveState();
+}
+
+async function runJudgeSynthesisRound() {
+  if (currentState.status !== 'WAITING_JUDGE_SYNTHESIS' && currentState.status !== 'COLLECTING_JUDGE_SYNTHESIS') {
+    currentState = self.StateMachine.transition(currentState, 'WAITING_JUDGE_SYNTHESIS');
+    await saveState();
+  }
+
+  const judge = currentState.synthesisPlatform;
+  const tabId = currentState.tabs[judge];
+  if (!tabId) {
+    throw new Error(`No tab connection for judge platform: ${judge}`);
+  }
+
+  activateTab(judge);
+
+  if (currentState.synthesis) {
+    await self.DebateLogger.info('orchestrator', 'Synthesis pass already completed.');
+    return;
+  }
+
+  const synthesisPrompt = self.DebateTemplates.getJudgeSynthesisPrompt(currentState.question, currentState.analysis);
+  
+  currentState.platformStatus[judge] = 'RUNNING';
+  await saveState();
+
+  await self.DebateLogger.info(judge, 'Sending Synthesis Pass prompt to Judge');
+  await sendTabMessageWithRetry(tabId, { action: 'injectAndSend', text: synthesisPrompt });
+
+  currentState.platformStatus[judge] = 'WAITING';
+  await saveState();
+
+  await self.DebateLogger.info(judge, 'Waiting for synthesis completion (180s timeout)');
   const synthesizedText = await sendTabMessageWithRetry(tabId, { action: 'waitForCompletion', timeoutMs: 180000 }, [0, 2000, 5000]);
 
   currentState.synthesis = synthesizedText;
   currentState.platformStatus[judge] = 'SUCCESS';
-  await self.DebateLogger.info(judge, 'Synthesis completed successfully!');
+  await self.DebateLogger.info(judge, 'Synthesis Pass completed successfully!');
   await saveState();
 }
 
@@ -592,8 +631,12 @@ async function runDebateStateLoop() {
       await runCritiqueRound2();
     }
 
-    if (currentState.status === 'JUDGE' || currentState.status === 'WAITING_JUDGE' || currentState.status === 'COLLECTING_JUDGE') {
-      await runJudgeRound();
+    if (currentState.status === 'JUDGE_ANALYSIS' || currentState.status === 'WAITING_JUDGE_ANALYSIS' || currentState.status === 'COLLECTING_JUDGE_ANALYSIS') {
+      await runJudgeAnalysisRound();
+    }
+
+    if (currentState.status === 'JUDGE_SYNTHESIS' || currentState.status === 'WAITING_JUDGE_SYNTHESIS' || currentState.status === 'COLLECTING_JUDGE_SYNTHESIS') {
+      await runJudgeSynthesisRound();
     }
     
     if (currentState && currentState.status !== 'CANCELLED' && currentState.status !== 'FAILED') {
@@ -755,7 +798,8 @@ if (self.alarmListenerRegistered) {
           'BROADCASTING', 'WAITING', 'COLLECTING',
           'CRITIQUE', 'WAITING_CRITIQUE', 'COLLECTING_CRITIQUE',
           'ROUND2', 'WAITING_ROUND2', 'COLLECTING_ROUND2',
-          'JUDGE', 'WAITING_JUDGE', 'COLLECTING_JUDGE'
+          'JUDGE_ANALYSIS', 'WAITING_JUDGE_ANALYSIS', 'COLLECTING_JUDGE_ANALYSIS',
+          'JUDGE_SYNTHESIS', 'WAITING_JUDGE_SYNTHESIS', 'COLLECTING_JUDGE_SYNTHESIS'
         ];
         if (runningStates.includes(currentState.status)) {
           console.log('Keepalive triggered orchestrator restart');
