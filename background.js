@@ -345,7 +345,7 @@ async function runRoundGeneric(stageName, answersKey, timeoutMs) {
   } else if (stageName === 'critique2') {
     waitState = 'WAITING_ROUND2';
     collectState = 'COLLECTING_ROUND2';
-    nextState = 'JUDGE';
+    nextState = 'JUDGE_ANALYSIS';
   }
 
   if (currentState.status !== waitState && currentState.status !== collectState) {
@@ -456,7 +456,7 @@ async function runInitialRound() {
   const successes = currentState.config.platforms.filter(p => currentState.answers.initial[p]);
   if (successes.length < 2) {
     await self.DebateLogger.warn('orchestrator', 'Fewer than 2 successful initial answers. Skipping critiques.');
-    currentState = self.StateMachine.transition(currentState, 'JUDGE');
+    currentState = self.StateMachine.transition(currentState, 'JUDGE_ANALYSIS');
     await saveState();
   }
 }
